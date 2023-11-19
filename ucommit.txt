@@ -1,1 +1,1 @@
-Se parsean from y msg
+Se elimina script sh
