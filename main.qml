@@ -75,15 +75,15 @@ ApplicationWindow{
             id: wv
             width: parent.width
             height: parent.height//*0.5
-            x:app.width+1280
+            //x:app.width+1280
             //            y: 100
             //url:"https://streamlabs.com/widgets/chat-box/v1/15602D8555920F741CDF"
-            url:"https://twitch.tv/ricardomartinpizarro/chat"
+            //url:"https://twitch.tv/ricardomartinpizarro/chat"
 
             //visible:false
             onLoadProgressChanged:{
                 if(loadProgress===100){
-                    tCheck.start()
+                    //tCheck.start()
                 }
             }
         }
@@ -91,42 +91,6 @@ ApplicationWindow{
     Item{
         id: xApp
         anchors.fill: parent
-        //opacity: app.editable?1.0:0.65
-        Rectangle{
-            id: xLed
-            width: 100
-            height: width
-            border.width: 4
-            border.color: '#ff8833'
-            radius: 10
-            property bool toogle: false
-            color: toogle?'red':'green'
-            visible: false
-            Text {
-                id: info
-                text: 'nada'
-                font.pixelSize: 24
-                width: xApp.width-20
-                wrapMode: Text.WordWrap
-                anchors.left: parent.left
-                anchors.leftMargin: 20
-            }
-            MouseArea{
-                anchors.fill: parent
-                onClicked: {
-                    Qt.quit()
-                    app.editable=false
-                    console.log('Desactivando...')
-                    showMode(app.editable)
-                }
-                Rectangle{
-                    anchors.fill: parent
-                    color: '#ff8833'
-                }
-            }
-        }
-
-
     }
     property string uMsg: 'null'
     Timer{
@@ -141,13 +105,7 @@ ApplicationWindow{
             wv.runJavaScript('function doc(){var d=document.body.innerHTML; return d;};doc();', function(html){
                 //console.log('Doc: '+html)
                 if(html&&html!==apps.uHtml){
-                    if(html.indexOf(app.userAdmin)>=0 && html.indexOf('eqmlnot')>=0){
-                        tCheck.e=true
-                    }
-                    if(html.indexOf(app.userAdmin)>=0 && html.indexOf('dqmlnot')>=0){
-                        tCheck.e=false
-                    }
-                    if(html.indexOf(':')>=0 && e){
+                    if(html.indexOf(':')>=0){
                         console.log('yes'+tCheck.v)
 
                         tCheck.v++
@@ -171,7 +129,26 @@ ApplicationWindow{
                                             let msg=m5[0]
                                             console.log('De:'+de)
                                             console.log('Dice:'+msg)
-                                            sendNot(de, msg)
+
+                                            if(de.indexOf(app.userAdmin)>=0 && msg.indexOf('eqmlnot')>=0){
+                                                tCheck.e=true
+//                                                apps.uHtml=html
+//                                                running=true
+//                                                return
+                                            }
+                                            if(de.indexOf(app.userAdmin)>=0 && msg.indexOf('dqmlnot')>=0){
+                                                tCheck.e=false
+                                                //apps.uHtml=html
+                                                //running=true
+                                                //return
+                                            }
+                                            apps.uHtml=html
+                                            console.log('Enabled for sending:'+e)
+                                            if(e){
+                                                sendNot(de, msg)
+                                                //running=true
+                                                return
+                                            }
                                         }
                                     }
                                 }
@@ -183,11 +160,12 @@ ApplicationWindow{
                     //unik.speak('NO')
                     //apps.uHtml=''
                     running=true
-                    return
+                    //return
                 }
                 apps.uHtml=html
                 running=true
             });
+            running=true
         }
     }
 
@@ -196,27 +174,44 @@ ApplicationWindow{
     Shortcut{
         sequence: 'Esc'
         onActivated: {
-            for(var i=0;i<xAlarmVisual.children.length;i++){
-                //xAlarmVisual.children[i].destroy()
-            }
-            xAlarmVisual.visible=false
+
         }
     }
     UnikQProcess{
         id: uqp
         onLogDataChanged: {
             console.log('LogData: '+logData)
+            tCheck.running=true
         }
     }
     Component.onCompleted: {
-
+        let args=Qt.application.arguments
+        console.log('Args: '+args)
+        for(var i=0;i<args.length;i++){
+            var m0
+            let arg=args[i]
+            if(arg.indexOf('-urlChat=')>=0){
+                m0=arg.split('-urlChat=')
+                wv.url=m0[1]
+                console.log('wv.url: '+wv.url)
+            }else{
+                wv.url="https://twitch.tv/ricardomartinpizarro/chat"
+            }
+            console.log('Args: '+args)
+        }
     }
     function sendNot(from, msg){
+        tCheck.running=false
         let d=new Date(Date.now())
         let sd=''+d.getDate()+'/'+parseInt(d.getMonth()+1)+'/'+d.getFullYear()
-        let s='Nuevo mensaje en el chat de Twitch - '+sd+'De: '+from+' Mensaje: '+msg
+        let sh=''+d.getHours()+':'+d.getMinutes()+'hs'
+        let s='Nuevo mensaje en el chat de Twitch - '+sd+' '+sh+'De: '+from+' Mensaje: '+msg
         let cmd='sh '
         cmd+=' /home/ns/gd/scripts/sendPushoverTwitchAlert.sh "'+s+'"'
+        /*
+        #!/bin/bash
+        curl -s   --form-string "token=appPushovertoken"   --form-string "user=<userPushoverid>"   --form-string "message=$1"   https://api.pushover.net/1/messages.json
+        */
         uqp.run(cmd)
     }
 }
